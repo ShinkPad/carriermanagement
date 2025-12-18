@@ -851,7 +851,20 @@
   <!-- 修正案・変更案の管理セクション -->
   <div class="revisions-section">
     <h2>📋 修正案・変更案・提案管理</h2>
-    <p style="color: #666; margin-top: 0;">チェックボックスで修正状況を管理できます。状態は自動保存されます。</p>
+    <p style="color: #666; margin-top: 0;">チェックボックスで修正状況を管理できます。状態はサーバーに自動保存されます。</p>
+    
+    <div style="margin-bottom: 1em; padding: 1em; background: #f8f9fc; border-radius: 6px;">
+      <label style="display: block; margin-bottom: 0.5em; font-weight: 600; color: #667eea;">👤 あなたのお名前：</label>
+      <input type="text" id="userNameInput" placeholder="例：田中、佐藤など" style="
+        width: 100%;
+        padding: 0.7em;
+        border: 2px solid #667eea;
+        border-radius: 4px;
+        font-size: 0.95em;
+        box-sizing: border-box;
+      " onchange="revisionManager.setUserName(this.value)">
+      <small style="color: #999;">修正案を追加するときにこの名前が記録されます。</small>
+    </div>
     
     <div id="revisionsList"></div>
     
@@ -880,6 +893,10 @@
     
     <div class="access-stats">
       <div class="stat-card">
+        <div class="stat-label">総訪問人数</div>
+        <div class="stat-number" id="totalUsers">0</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">総訪問回数</div>
         <div class="stat-number" id="totalVisits">0</div>
       </div>
@@ -892,13 +909,14 @@
     <table class="access-table">
       <thead>
         <tr>
-          <th>訪問回数</th>
+          <th>訪問者名</th>
           <th>訪問時刻</th>
+          <th>訪問回数</th>
         </tr>
       </thead>
       <tbody id="accessHistoryTable">
         <tr>
-          <td colspan="2" style="text-align: center; color: #999;">訪問履歴はまだありません</td>
+          <td colspan="3" style="text-align: center; color: #999;">訪問履歴はまだありません</td>
         </tr>
       </tbody>
     </table>
@@ -923,27 +941,44 @@
     });
     document.getElementById('lastModified').textContent = '最終更新：' + formattedDate;
 
-    // 修正案管理システム
+    // 修正案管理システム（サーバーAPI対応版）
     class RevisionManager {
       constructor() {
-        this.storageKey = 'pageRevisions';
+        this.apiUrl = 'http://localhost:3000/api/revisions';
+        this.userName = localStorage.getItem('userName') || 'Anonymous';
+        document.getElementById('userNameInput').value = this.userName;
         this.loadRevisions();
-        this.renderRevisions();
         this.setupEventListeners();
       }
 
-      loadRevisions() {
-        const stored = localStorage.getItem(this.storageKey);
-        this.revisions = stored ? JSON.parse(stored) : [
-          { id: 1, text: '調査対象場所の写真を追加する', completed: false },
-          { id: 2, text: 'リスクレベル表を色分けで見やすくする', completed: false },
-          { id: 3, text: 'UI配色をカラフルにする', completed: true },
-          { id: 4, text: 'ページアイコン（favicon）を設定する', completed: false }
-        ];
+      setUserName(name) {
+        this.userName = name.trim() || 'Anonymous';
+        localStorage.setItem('userName', this.userName);
       }
 
-      saveRevisions() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.revisions));
+      async loadRevisions() {
+        try {
+          const response = await fetch(this.apiUrl);
+          if (response.ok) {
+            const revisions = await response.json();
+            this.revisions = revisions;
+            this.renderRevisions();
+          }
+        } catch (error) {
+          console.error('Error loading revisions:', error);
+          // フォールバック：ローカルストレージから読み込み
+          this.loadLocalRevisions();
+        }
+      }
+
+      loadLocalRevisions() {
+        const stored = localStorage.getItem('pageRevisions');
+        this.revisions = stored ? JSON.parse(stored) : [];
+        this.renderRevisions();
+      }
+
+      async saveLocalRevisions() {
+        localStorage.setItem('pageRevisions', JSON.stringify(this.revisions));
       }
 
       renderRevisions() {
@@ -969,7 +1004,10 @@
         div.className = 'revision-item';
         div.innerHTML = `
           <input type="checkbox" ${revision.completed ? 'checked' : ''} onchange="revisionManager.toggleRevision(${revision.id})">
-          <span class="revision-text">${revision.text}</span>
+          <span class="revision-text">
+            <strong>${revision.text}</strong>
+            <br><small style="color: #999;">提案者: ${revision.createdBy} (${revision.createdAt})</small>
+          </span>
           <span class="revision-status ${revision.completed ? 'completed' : 'pending'}">
             ${revision.completed ? '✓ 完了' : '○ 未完了'}
           </span>
@@ -977,22 +1015,46 @@
         container.appendChild(div);
       }
 
-      toggleRevision(id) {
+      async toggleRevision(id) {
         const revision = this.revisions.find(r => r.id === id);
         if (revision) {
-          revision.completed = !revision.completed;
-          this.saveRevisions();
-          this.renderRevisions();
+          try {
+            const response = await fetch(`${this.apiUrl}/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ completed: !revision.completed })
+            });
+            if (response.ok) {
+              revision.completed = !revision.completed;
+              this.renderRevisions();
+            }
+          } catch (error) {
+            console.error('Error updating revision:', error);
+            revision.completed = !revision.completed;
+            this.renderRevisions();
+            await this.saveLocalRevisions();
+          }
         }
       }
 
-      addRevision() {
+      async addRevision() {
         const text = prompt('修正案・変更案・提案を入力してください：');
         if (text && text.trim()) {
-          const newId = Math.max(...this.revisions.map(r => r.id), 0) + 1;
-          this.revisions.push({ id: newId, text: text.trim(), completed: false });
-          this.saveRevisions();
-          this.renderRevisions();
+          try {
+            const response = await fetch(this.apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: text.trim(), createdBy: this.userName })
+            });
+            if (response.ok) {
+              const newRevision = await response.json();
+              this.revisions.push(newRevision);
+              this.renderRevisions();
+            }
+          } catch (error) {
+            console.error('Error adding revision:', error);
+            alert('案の追加に失敗しました。サーバーが起動しているか確認してください。');
+          }
         }
       }
 
@@ -1001,45 +1063,54 @@
       }
     }
 
-    // 訪問履歴管理システム
+    // 訪問履歴管理システム（サーバーAPI対応版）
     class AccessHistoryManager {
       constructor() {
-        this.storageKey = 'pageAccessHistory';
-        this.loadHistory();
+        this.apiUrl = 'http://localhost:3000/api/access-history';
         this.recordVisit();
-        this.renderHistory();
+        this.loadHistory();
       }
 
-      loadHistory() {
-        const stored = localStorage.getItem(this.storageKey);
-        this.history = stored ? JSON.parse(stored) : [];
+      async recordVisit() {
+        const userName = localStorage.getItem('userName') || 'Anonymous';
+        try {
+          const response = await fetch(this.apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userName: userName })
+          });
+          if (response.ok) {
+            this.loadHistory();
+          }
+        } catch (error) {
+          console.error('Error recording visit:', error);
+        }
       }
 
-      saveHistory() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.history));
-      }
-
-      recordVisit() {
-        const now = new Date();
-        const timestamp = now.toLocaleString('ja-JP', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-        this.history.push({ timestamp: timestamp, visitNumber: this.history.length + 1 });
-        this.saveHistory();
+      async loadHistory() {
+        try {
+          const response = await fetch(this.apiUrl);
+          if (response.ok) {
+            this.history = await response.json();
+            this.renderHistory();
+          }
+        } catch (error) {
+          console.error('Error loading history:', error);
+        }
       }
 
       renderHistory() {
         const tbody = document.getElementById('accessHistoryTable');
         const totalVisits = document.getElementById('totalVisits');
         const lastVisitTime = document.getElementById('lastVisitTime');
+        const totalUsers = document.getElementById('totalUsers');
 
         tbody.innerHTML = '';
         totalVisits.textContent = this.history.length;
+
+        // ユニークなユーザー数をカウント
+        const uniqueUsers = new Set(this.history.map(h => h.userName));
+        totalUsers.textContent = uniqueUsers.size;
 
         if (this.history.length > 0) {
           // 最新の訪問を上に表示
@@ -1047,8 +1118,9 @@
           sortedHistory.forEach(visit => {
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td style="text-align: center; font-weight: 600; color: #667eea;">#${visit.visitNumber}</td>
+              <td><strong>${visit.userName}</strong></td>
               <td>${visit.timestamp}</td>
+              <td style="text-align: center; color: #667eea; font-weight: 600;">#${visit.visitNumber}</td>
             `;
             tbody.appendChild(row);
           });
@@ -1058,12 +1130,19 @@
         }
       }
 
-      clearHistory() {
+      async clearHistory() {
         if (confirm('訪問履歴を削除してもよろしいですか？')) {
-          this.history = [];
-          this.saveHistory();
-          this.renderHistory();
-          alert('訪問履歴をクリアしました。');
+          try {
+            const response = await fetch(this.apiUrl, { method: 'DELETE' });
+            if (response.ok) {
+              this.history = [];
+              this.renderHistory();
+              alert('訪問履歴をクリアしました。');
+            }
+          } catch (error) {
+            console.error('Error clearing history:', error);
+            alert('履歴のクリアに失敗しました。');
+          }
         }
       }
     }
