@@ -710,7 +710,19 @@
 
   <div class="lastModified" id="lastModified"></div>
 
-
+  <script>
+    // ページの最終更新時刻を表示
+    const lastModDate = new Date(document.lastModified);
+    const formattedDate = lastModDate.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    document.getElementById('lastModified').textContent = '最終更新：' + formattedDate;
+  </script>
 
 </body>
 </html>
