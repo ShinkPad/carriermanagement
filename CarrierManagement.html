@@ -167,6 +167,85 @@
       background-color: #e6ffe6;
       color: #388e3c;
     }
+    .access-history-section {
+      background: white;
+      border: 2px solid #764ba2;
+      border-radius: 8px;
+      padding: 1.5em;
+      margin: 2em 0;
+      box-shadow: 0 4px 12px rgba(118, 75, 162, 0.2);
+    }
+    .access-history-section h2 {
+      border-left: 8px solid #764ba2;
+      padding-left: 1em;
+      color: #764ba2;
+      margin-top: 0;
+    }
+    .access-stats {
+      display: flex;
+      gap: 2em;
+      margin: 1.5em 0;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      flex: 1;
+      min-width: 200px;
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      color: white;
+      padding: 1.2em;
+      border-radius: 6px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(118, 75, 162, 0.3);
+    }
+    .stat-number {
+      font-size: 2em;
+      font-weight: 700;
+      margin: 0.5em 0;
+    }
+    .stat-label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+    .access-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+      background: white;
+    }
+    .access-table th {
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      color: white;
+      padding: 0.8em;
+      text-align: left;
+      font-weight: 600;
+    }
+    .access-table td {
+      padding: 0.7em 0.8em;
+      border-bottom: 1px solid #e0e7ff;
+    }
+    .access-table tr:hover {
+      background-color: #f8f9fc;
+    }
+    .access-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .clear-history-btn {
+      background-color: #d32f2f;
+      color: white;
+      border: none;
+      padding: 0.6em 1.2em;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 600;
+      margin-top: 1em;
+      transition: all 0.3s ease;
+    }
+    .clear-history-btn:hover {
+      background-color: #b71c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -795,6 +874,40 @@
     </div>
   </div>
 
+  <!-- 訪問履歴・アクセス統計セクション -->
+  <div class="access-history-section">
+    <h2>👁️ 訪問履歴・アクセス統計</h2>
+    
+    <div class="access-stats">
+      <div class="stat-card">
+        <div class="stat-label">総訪問回数</div>
+        <div class="stat-number" id="totalVisits">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">最終訪問時刻</div>
+        <div class="stat-number" id="lastVisitTime" style="font-size: 1.2em;">-</div>
+      </div>
+    </div>
+
+    <table class="access-table">
+      <thead>
+        <tr>
+          <th>訪問回数</th>
+          <th>訪問時刻</th>
+        </tr>
+      </thead>
+      <tbody id="accessHistoryTable">
+        <tr>
+          <td colspan="2" style="text-align: center; color: #999;">訪問履歴はまだありません</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button class="clear-history-btn" onclick="accessHistoryManager.clearHistory()">
+      🗑️ 訪問履歴をクリア
+    </button>
+  </div>
+
   <div class="lastModified" id="lastModified"></div>
 
   <script>
@@ -888,7 +1001,75 @@
       }
     }
 
+    // 訪問履歴管理システム
+    class AccessHistoryManager {
+      constructor() {
+        this.storageKey = 'pageAccessHistory';
+        this.loadHistory();
+        this.recordVisit();
+        this.renderHistory();
+      }
+
+      loadHistory() {
+        const stored = localStorage.getItem(this.storageKey);
+        this.history = stored ? JSON.parse(stored) : [];
+      }
+
+      saveHistory() {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.history));
+      }
+
+      recordVisit() {
+        const now = new Date();
+        const timestamp = now.toLocaleString('ja-JP', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        this.history.push({ timestamp: timestamp, visitNumber: this.history.length + 1 });
+        this.saveHistory();
+      }
+
+      renderHistory() {
+        const tbody = document.getElementById('accessHistoryTable');
+        const totalVisits = document.getElementById('totalVisits');
+        const lastVisitTime = document.getElementById('lastVisitTime');
+
+        tbody.innerHTML = '';
+        totalVisits.textContent = this.history.length;
+
+        if (this.history.length > 0) {
+          // 最新の訪問を上に表示
+          const sortedHistory = [...this.history].reverse();
+          sortedHistory.forEach(visit => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td style="text-align: center; font-weight: 600; color: #667eea;">#${visit.visitNumber}</td>
+              <td>${visit.timestamp}</td>
+            `;
+            tbody.appendChild(row);
+          });
+
+          // 最終訪問時刻を表示
+          lastVisitTime.textContent = this.history[this.history.length - 1].timestamp;
+        }
+      }
+
+      clearHistory() {
+        if (confirm('訪問履歴を削除してもよろしいですか？')) {
+          this.history = [];
+          this.saveHistory();
+          this.renderHistory();
+          alert('訪問履歴をクリアしました。');
+        }
+      }
+    }
+
     const revisionManager = new RevisionManager();
+    const accessHistoryManager = new AccessHistoryManager();
   </script>
 
 </body>
