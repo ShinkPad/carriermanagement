@@ -17,11 +17,12 @@
     caption { text-align: left; font-weight: bold; margin-bottom: 0.2em; }
     .note { font-size: 0.9em; color: #555; }
     .box { border: 1px solid #ccc; padding: 0.6em 0.9em; margin: 0.6em 0 1.0em 0; background: #fafafa; }
+    .lastModified { font-size: 0.85em; color: #666; border-top: 1px solid #ddd; padding-top: 1em; margin-top: 2em; text-align: right; }
   </style>
 </head>
 <body>
 
-  <h1>グループ5課題<br>3F渡り廊下手すりのリスクアセスメント</h1>
+  <h1>グループ5課題<br>南館3F渡り廊下手すりのリスクアセスメント</h1>
 
   <!-- 0. 事前知識の整理（概要ページ） -->
 
@@ -605,6 +606,22 @@
     ※残留リスクが許容範囲内に収まっているかどうかは、対策実施後に再度 S・F・Q・P を見積もり、
     R を再計算することで確認する。
   </p>
+
+  <div class="lastModified" id="lastModified"></div>
+
+  <script>
+    // ページの最終更新時刻を表示
+    const lastModDate = new Date(document.lastModified);
+    const formattedDate = lastModDate.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    document.getElementById('lastModified').textContent = '最終更新：' + formattedDate;
+  </script>
 
 </body>
 </html>
