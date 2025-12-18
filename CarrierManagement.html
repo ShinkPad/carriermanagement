@@ -106,6 +106,67 @@
     }
     strong { color: #764ba2; font-weight: 600; }
     mark { background-color: #fff3cd; padding: 0.2em 0.4em; border-radius: 3px; }
+    .revisions-section {
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 1.5em;
+      margin: 2em 0;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    .revisions-section h2 {
+      border-left: 8px solid #667eea;
+      padding-left: 1em;
+      color: #667eea;
+      margin-top: 0;
+    }
+    .revision-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 0.8em;
+      margin: 0.8em 0;
+      background: #f8f9fc;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+      transition: all 0.3s ease;
+    }
+    .revision-item:hover {
+      background: #f0eff5;
+      transform: translateX(4px);
+    }
+    .revision-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 1em;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 0.2em;
+    }
+    .revision-item input[type="checkbox"]:checked + .revision-text {
+      color: #999;
+      text-decoration: line-through;
+    }
+    .revision-text {
+      flex-grow: 1;
+      font-size: 0.95em;
+      line-height: 1.6;
+    }
+    .revision-status {
+      font-size: 0.8em;
+      font-weight: 600;
+      padding: 0.3em 0.6em;
+      border-radius: 4px;
+      white-space: nowrap;
+      margin-left: 1em;
+    }
+    .revision-status.pending {
+      background-color: #ffe6e6;
+      color: #d32f2f;
+    }
+    .revision-status.completed {
+      background-color: #e6ffe6;
+      color: #388e3c;
+    }
   </style>
 </head>
 <body>
@@ -708,6 +769,32 @@
     R を再計算することで確認する。
   </p>
 
+  <!-- 修正案・変更案の管理セクション -->
+  <div class="revisions-section">
+    <h2>📋 修正案・変更案・提案管理</h2>
+    <p style="color: #666; margin-top: 0;">チェックボックスで修正状況を管理できます。状態は自動保存されます。</p>
+    
+    <div id="revisionsList"></div>
+    
+    <div style="margin-top: 1.5em; padding-top: 1em; border-top: 1px solid #e0e7ff;">
+      <button id="addRevisionBtn" style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.7em 1.5em;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.95em;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.5)'" 
+         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(102, 126, 234, 0.3)'">
+        + 新しい案を追加
+      </button>
+    </div>
+  </div>
+
   <div class="lastModified" id="lastModified"></div>
 
   <script>
@@ -722,6 +809,86 @@
       second: '2-digit'
     });
     document.getElementById('lastModified').textContent = '最終更新：' + formattedDate;
+
+    // 修正案管理システム
+    class RevisionManager {
+      constructor() {
+        this.storageKey = 'pageRevisions';
+        this.loadRevisions();
+        this.renderRevisions();
+        this.setupEventListeners();
+      }
+
+      loadRevisions() {
+        const stored = localStorage.getItem(this.storageKey);
+        this.revisions = stored ? JSON.parse(stored) : [
+          { id: 1, text: '調査対象場所の写真を追加する', completed: false },
+          { id: 2, text: 'リスクレベル表を色分けで見やすくする', completed: false },
+          { id: 3, text: 'UI配色をカラフルにする', completed: true },
+          { id: 4, text: 'ページアイコン（favicon）を設定する', completed: false }
+        ];
+      }
+
+      saveRevisions() {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.revisions));
+      }
+
+      renderRevisions() {
+        const container = document.getElementById('revisionsList');
+        container.innerHTML = '';
+
+        const pending = this.revisions.filter(r => !r.completed);
+        const completed = this.revisions.filter(r => r.completed);
+
+        if (pending.length > 0) {
+          container.innerHTML += '<p style="color: #667eea; font-weight: 600; margin-top: 1em;">📌 未修正案</p>';
+          pending.forEach(rev => this.renderRevisionItem(rev, container));
+        }
+
+        if (completed.length > 0) {
+          container.innerHTML += '<p style="color: #388e3c; font-weight: 600; margin-top: 1.5em;">✅ 修正済み</p>';
+          completed.forEach(rev => this.renderRevisionItem(rev, container));
+        }
+      }
+
+      renderRevisionItem(revision, container) {
+        const div = document.createElement('div');
+        div.className = 'revision-item';
+        div.innerHTML = `
+          <input type="checkbox" ${revision.completed ? 'checked' : ''} onchange="revisionManager.toggleRevision(${revision.id})">
+          <span class="revision-text">${revision.text}</span>
+          <span class="revision-status ${revision.completed ? 'completed' : 'pending'}">
+            ${revision.completed ? '✓ 完了' : '○ 未完了'}
+          </span>
+        `;
+        container.appendChild(div);
+      }
+
+      toggleRevision(id) {
+        const revision = this.revisions.find(r => r.id === id);
+        if (revision) {
+          revision.completed = !revision.completed;
+          this.saveRevisions();
+          this.renderRevisions();
+        }
+      }
+
+      addRevision() {
+        const text = prompt('修正案・変更案・提案を入力してください：');
+        if (text && text.trim()) {
+          const newId = Math.max(...this.revisions.map(r => r.id), 0) + 1;
+          this.revisions.push({ id: newId, text: text.trim(), completed: false });
+          this.saveRevisions();
+          this.renderRevisions();
+        }
+      }
+
+      setupEventListeners() {
+        document.getElementById('addRevisionBtn').onclick = () => this.addRevision();
+      }
+    }
+
+    const revisionManager = new RevisionManager();
   </script>
 
 </body>
