@@ -127,7 +127,7 @@ app.delete('/api/access-history', (req, res) => {
 });
 
 // サーバー起動
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`サーバーが起動しました: http://localhost:${PORT}`);
   console.log('複数人でページにアクセスすると、データが自動共有されます。');
 });

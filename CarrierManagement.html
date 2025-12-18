@@ -929,6 +929,9 @@
   <div class="lastModified" id="lastModified"></div>
 
   <script>
+    // API ベース URL を自動決定（現在のホスト + ポート 3000）
+    const API_BASE_URL = `http://${window.location.hostname}:3000/api`;
+
     // ページの最終更新時刻を表示
     const lastModDate = new Date(document.lastModified);
     const formattedDate = lastModDate.toLocaleString('ja-JP', {
@@ -944,7 +947,7 @@
     // 修正案管理システム（サーバーAPI対応版）
     class RevisionManager {
       constructor() {
-        this.apiUrl = 'http://localhost:3000/api/revisions';
+        this.apiUrl = `${API_BASE_URL}/revisions`;
         this.userName = localStorage.getItem('userName') || 'Anonymous';
         document.getElementById('userNameInput').value = this.userName;
         this.loadRevisions();
@@ -1066,7 +1069,7 @@
     // 訪問履歴管理システム（サーバーAPI対応版）
     class AccessHistoryManager {
       constructor() {
-        this.apiUrl = 'http://localhost:3000/api/access-history';
+        this.apiUrl = `${API_BASE_URL}/access-history`;
         this.recordVisit();
         this.loadHistory();
       }

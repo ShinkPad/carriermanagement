@@ -1,9 +1,44 @@
 {
   "revisions": [
-    { "id": 1, "text": "調査対象場所の写真を追加する", "completed": false, "createdBy": "System", "createdAt": "2025-12-18 10:00:00" },
-    { "id": 2, "text": "リスクレベル表を色分けで見やすくする", "completed": false, "createdBy": "System", "createdAt": "2025-12-18 10:00:00" },
-    { "id": 3, "text": "UI配色をカラフルにする", "completed": true, "createdBy": "System", "createdAt": "2025-12-18 10:00:00" },
-    { "id": 4, "text": "ページアイコン（favicon）を設定する", "completed": false, "createdBy": "System", "createdAt": "2025-12-18 10:00:00" }
+    {
+      "id": 1,
+      "text": "調査対象場所の写真を追加する",
+      "completed": false,
+      "createdBy": "System",
+      "createdAt": "2025-12-18 10:00:00"
+    },
+    {
+      "id": 2,
+      "text": "リスクレベル表を色分けで見やすくする",
+      "completed": false,
+      "createdBy": "System",
+      "createdAt": "2025-12-18 10:00:00"
+    },
+    {
+      "id": 3,
+      "text": "UI配色をカラフルにする",
+      "completed": true,
+      "createdBy": "System",
+      "createdAt": "2025-12-18 10:00:00"
+    },
+    {
+      "id": 4,
+      "text": "ページアイコン（favicon）を設定する",
+      "completed": false,
+      "createdBy": "System",
+      "createdAt": "2025-12-18 10:00:00"
+    }
   ],
-  "accessHistory": []
+  "accessHistory": [
+    {
+      "userName": "Anonymous",
+      "timestamp": "2025/12/18 22:05:06",
+      "visitNumber": 1
+    },
+    {
+      "userName": "Anonymous",
+      "timestamp": "2025/12/18 22:07:40",
+      "visitNumber": 2
+    }
+  ]
 }
